@@ -12,6 +12,8 @@ namespace Engine
         //Game initialization/cleanup, defined by the user
         void Initialize();
         void GameExit();
+
+        void GameLoop();
     private:
     };
 } // Engine
