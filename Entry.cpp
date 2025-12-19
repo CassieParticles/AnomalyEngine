@@ -1,6 +1,12 @@
 ﻿#include <iostream>
 
+#include "Engine/EntryPoint/Application.h"
+
 int main()
 {
-    std::cout<<"Hello, World!\n";
+    Engine::Application application;
+
+    application.Initialize();
+
+    application.GameExit();
 }

@@ -1,8 +1,8 @@
 ﻿set(CMAKE_CXX_STANDARD 20)
 
 add_library(AnomalyEngine
-        Application.cpp
-        Application.h
+        EntryPoint/Application.cpp
+        EntryPoint/Application.h
 )
 
 if(CMAKE_BUILD_TYPE MATCHES "Debug")
