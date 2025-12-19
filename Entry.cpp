@@ -8,7 +8,7 @@ int main()
 
     application.Initialize();
 
-    application.GameLoop();
+    //application.GameLoop();
 
     application.GameExit();
 }

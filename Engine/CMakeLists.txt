@@ -3,6 +3,7 @@
 add_library(AnomalyEngine
         EntryPoint/Application.cpp
         EntryPoint/Application.h
+        Experiments/TypeTree.h
 )
 
 if(CMAKE_BUILD_TYPE MATCHES "Debug")
