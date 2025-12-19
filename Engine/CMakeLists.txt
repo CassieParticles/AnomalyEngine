@@ -10,3 +10,5 @@ if(CMAKE_BUILD_TYPE MATCHES "Debug")
 elseif(CMAKE_BUILD_TYPE MATCHES "Release")
     target_compile_definitions(AnomalyEngine PUBLIC "RELEASE")
 endif()
+
+target_include_directories(AnomalyEngine PUBLIC libraries/refl)
