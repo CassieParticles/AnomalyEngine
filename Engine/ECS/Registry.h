@@ -26,6 +26,9 @@ namespace Engine
 
         template<ComponentClass C>
         static bool HasComponent(EntityId entity);
+
+        template<ComponentClass C>
+        static CompPtr<C> GetCompPtr(EntityId entity);
     private:
         static std::unordered_map<size_t, std::unique_ptr<IComponentRegistry>> componentRegistries;
         static EntityId nextFreeId;
@@ -69,6 +72,12 @@ namespace Engine
     {
         if (auto registry = GetRegistry<C>()){return registry->HasComponent(entity);}
         return false;
+    }
+
+    template<ComponentClass C>
+    CompPtr<C> Registry::GetCompPtr(EntityId entity)
+    {
+        return dynamic_cast<ComponentRegistry<C>*>(GetRegistry<C>())->GetCompPtr(entity);
     }
 
     template<ComponentClass C>
