@@ -16,7 +16,7 @@ namespace Engine
         static Entity CreateEntity(const std::string& name = "Game Entity");
 
         template<ComponentClass C, typename... Args>
-        static C* AddComponent(EntityId entity, Args... args);
+        static CompPtr<C> AddComponent(EntityId entity, Args... args);
 
         template<ComponentClass C>
         static void RemoveComponent(EntityId entity);
@@ -45,13 +45,12 @@ namespace Engine
     };
 
     template<ComponentClass C, typename ... Args>
-    C * Registry::AddComponent(EntityId entity, Args... args)
+    CompPtr<C> Registry::AddComponent(EntityId entity, Args... args)
     {
         //Gets registry if it already exists
         ComponentRegistry<C>* registry = AddRegistry<C>();
 
         return registry->AddComponent(entity,args...);
-        return nullptr;
     }
 
     template<ComponentClass C>

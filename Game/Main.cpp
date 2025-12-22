@@ -12,24 +12,9 @@ void Engine::Application::Initialize()
     Entity entityD = Registry::CreateEntity("Entity D");
     Entity entityE = Registry::CreateEntity("Entity E");
 
-    CompPtr<TagComponent> nameA = Registry::GetCompPtr<TagComponent>(entityA);
-    CompPtr<TagComponent> nameB = Registry::GetCompPtr<TagComponent>(entityB);
-    CompPtr<TagComponent> nameC = Registry::GetCompPtr<TagComponent>(entityC);
-    CompPtr<TagComponent> nameD = Registry::GetCompPtr<TagComponent>(entityD);
-    CompPtr<TagComponent> nameE = Registry::GetCompPtr<TagComponent>(entityE);
+    CompPtr<TestComponent> test = entityA.AddComponent<TestComponent>();
 
-    std::cout<<nameA->name<<std::endl;
-    std::cout<<nameB->name<<std::endl;
-    std::cout<<nameC->name<<std::endl;
-    std::cout<<nameD->name<<std::endl;
-    std::cout<<nameE->name<<std::endl;
-
-    entityA.RemoveComponent<TagComponent>();
-
-    std::cout<<nameB->name<<std::endl;
-    std::cout<<nameC->name<<std::endl;
-    std::cout<<nameD->name<<std::endl;
-    std::cout<<nameE->name<<std::endl;
+    test->data = 23;
 }
 
 void Engine::Application::GameExit()

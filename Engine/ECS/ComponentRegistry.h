@@ -36,7 +36,7 @@ namespace Engine
         friend class Registry;
         public:
         template<typename... Args>
-        C* AddComponent(EntityId entity, Args... args);
+        CompPtr<C> AddComponent(EntityId entity, Args... args);
         void RemoveComponent(EntityId entity) override;
         bool HasComponent(EntityId entity) override;
         Component* GetComponent(EntityId entity) override;
@@ -55,8 +55,8 @@ namespace Engine
 
         //Smart pointers for components
         CompPtrInternal<C>* AddInternal(EntityId entity);
-        CompPtrInternal<C>* GetInternal(EntityId entityId);
-        CompPtrInternal<C>* UpdateInternal(EntityId entityId);
+        CompPtrInternal<C>* GetInternal(EntityId entity);
+        CompPtrInternal<C>* UpdateInternal(EntityId entity);
         void UpdateAllInternals();
         std::unordered_map<EntityId, CompPtrInternal<C>> CompPtrs;
 
@@ -65,7 +65,7 @@ namespace Engine
 
     template<ComponentClass C>
     template<typename ... Args>
-    C * ComponentRegistry<C>::AddComponent(EntityId entity, Args... args)
+    CompPtr<C> ComponentRegistry<C>::AddComponent(EntityId entity, Args... args)
     {
         //If component already exists, return
         if (Component* component = GetComponent(entity))
@@ -73,7 +73,7 @@ namespace Engine
 #ifdef DEBUG
             std::cout<<"Warning, attempt to create component failed: Component already exists\n";
 #endif
-            return static_cast<C*>(component);
+            return GetCompPtr(entity);
         }
         //Check whether buffer needs to be resized
         if ((componentCount + 1) * sizeof(C) > componentBuffer.size())
@@ -94,8 +94,7 @@ namespace Engine
 
         AddInternal(entity);
 
-        //Return new component
-        return newComponent;
+        return GetCompPtr(entity);
     }
 
     template<ComponentClass C>
@@ -174,7 +173,9 @@ namespace Engine
     {
         if (CompPtrs.contains(entity)){return &CompPtrs.at(entity);}
 
-        C* component = reinterpret_cast<C*>(GetComponent(entity));
+        size_t componentIndex = entityIndexMap.at(entity);
+        uint8_t* componentLocation = componentBuffer.data() + componentIndex * sizeof(C);
+        C* component = reinterpret_cast<C*>(componentLocation);
 
         CompPtrs.insert(std::make_pair(entity, CompPtrInternal<C>(entity, component)));
 
@@ -182,19 +183,22 @@ namespace Engine
     }
 
     template<ComponentClass C>
-    CompPtrInternal<C> * ComponentRegistry<C>::GetInternal(EntityId entityId)
+    CompPtrInternal<C> * ComponentRegistry<C>::GetInternal(EntityId entity)
     {
-        if (CompPtrs.contains(entityId)){return &CompPtrs.at(entityId);}
+        if (CompPtrs.contains(entity)){return &CompPtrs.at(entity);}
         return nullptr;
     }
 
     template<ComponentClass C>
-    CompPtrInternal<C> * ComponentRegistry<C>::UpdateInternal(EntityId entityId)
+    CompPtrInternal<C> * ComponentRegistry<C>::UpdateInternal(EntityId entity)
     {
-        if (!CompPtrs.contains(entityId)){return nullptr;}
-        CompPtrInternal<C>* ptrInternal = &CompPtrs.at(entityId);
+        if (!CompPtrs.contains(entity)){return nullptr;}
+        CompPtrInternal<C>* ptrInternal = &CompPtrs.at(entity);
 
-        ptrInternal->component = dynamic_cast<C*>(GetComponent(entityId));
+        size_t componentIndex = entityIndexMap.at(entity);
+        uint8_t* componentLocation = componentBuffer.data() + componentIndex * sizeof(C);
+
+        ptrInternal->component = reinterpret_cast<C*>(componentLocation);
 
         return ptrInternal;
     }

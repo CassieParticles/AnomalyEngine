@@ -12,7 +12,7 @@ namespace Engine
         Entity(const Entity& other);
 
         template<ComponentClass C, typename... Args>
-        C* AddComponent(Args... args);
+        CompPtr<C> AddComponent(Args... args);
 
         template<ComponentClass C>
         void RemoveComponent();
@@ -29,7 +29,7 @@ namespace Engine
     };
 
     template<ComponentClass C, typename ... Args>
-    C * Entity::AddComponent(Args... args)
+    CompPtr<C> Entity::AddComponent(Args... args)
     {
         return Registry::AddComponent<C>(entityId, args...);
     }
