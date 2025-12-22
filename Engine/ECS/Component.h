@@ -5,12 +5,20 @@
 
 namespace Engine
 {
+    class IComponentRegistry;
+
+
     class Component
     {
+        friend class IComponentRegistry;
     public:
-        Component();
+        Component()=default;
         Entity getEntity() const{return entity;}
-    private:
+    protected:
+
+        virtual void OnComponentAdded(){}
+        virtual void OnComponentRemoved(){}
+
         Entity entity;
     };
 
@@ -18,7 +26,7 @@ namespace Engine
     class TestComponent: public Component
     {
     public:
-        TestComponent();
+        TestComponent() = default;
         int data;
     private:
     };

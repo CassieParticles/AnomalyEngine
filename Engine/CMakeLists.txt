@@ -8,6 +8,8 @@ add_library(AnomalyEngine
         ECS/Component.h
         ECS/Entity.cpp
         ECS/Entity.h
+        ECS/ComponentRegistry.cpp
+        ECS/ComponentRegistry.h
 )
 
 if(CMAKE_BUILD_TYPE MATCHES "Debug")
