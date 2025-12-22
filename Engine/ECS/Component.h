@@ -22,6 +22,13 @@ namespace Engine
         Entity entity;
     };
 
+    class TagComponent: public Component
+    {
+    public:
+        TagComponent(const std::string& name);
+        std::string name;
+    private:
+    };
 
     class TestComponent: public Component
     {
@@ -33,4 +40,5 @@ namespace Engine
 }
 
 REFL_AUTO(type(Engine::Component))
+REFL_AUTO(type(Engine::TagComponent,bases<Engine::Component>))
 REFL_AUTO(type(Engine::TestComponent,bases<Engine::Component>))

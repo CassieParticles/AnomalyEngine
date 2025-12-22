@@ -8,10 +8,13 @@
 namespace Engine
 {
     class IComponentRegistry;
+    class Entity;
 
     class Registry
     {
     public:
+        static Entity CreateEntity(const std::string& name = "Game Entity");
+
         template<ComponentClass C, typename... Args>
         static C* AddComponent(EntityId entity, Args... args);
 
@@ -25,6 +28,7 @@ namespace Engine
         static bool HasComponent(EntityId entity);
     private:
         static std::unordered_map<size_t, std::unique_ptr<IComponentRegistry>> componentRegistries;
+        static EntityId nextFreeId;
 
         template<ComponentClass C>
         static ComponentRegistry<C>* AddRegistry();
