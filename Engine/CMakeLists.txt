@@ -3,6 +3,15 @@
 add_library(AnomalyEngine
         EntryPoint/Application.cpp
         EntryPoint/Application.h
+        ECS/ComponentConcept.h
+        ECS/Component.cpp
+        ECS/Component.h
+        ECS/Entity.cpp
+        ECS/Entity.h
+        ECS/ComponentRegistry.cpp
+        ECS/ComponentRegistry.h
+        ECS/Registry.cpp
+        ECS/Registry.h
 )
 
 if(CMAKE_BUILD_TYPE MATCHES "Debug")

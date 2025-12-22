@@ -4,6 +4,8 @@
 void Engine::Application::Initialize()
 {
     std::cout<<"Hello, World!\n";
+
+
 }
 
 void Engine::Application::GameExit()
