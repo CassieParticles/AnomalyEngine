@@ -8,14 +8,18 @@
 
 namespace Engine
 {
+    class Registry;
+
+
     class IComponentRegistry
     {
+        friend class Registry;
     public:
         virtual void RemoveComponent(EntityId entity) = 0;
         virtual bool HasComponent(EntityId entity) = 0;
         virtual Component* GetComponent(EntityId entity) = 0;
-        IComponentRegistry() = default;
     protected:
+        IComponentRegistry() = default;
 
         //Ways for derived templates to access private component members, since generic friend classes won't work
         void OnComponentAdded(EntityId entity, Component* component);
@@ -28,6 +32,7 @@ namespace Engine
     template<ComponentClass C>
     class ComponentRegistry final:public IComponentRegistry
     {
+        friend class Registry;
         public:
         template<typename... Args>
         C* AddComponent(EntityId entity, Args... args);
@@ -35,8 +40,8 @@ namespace Engine
         bool HasComponent(EntityId entity) override;
         Component* GetComponent(EntityId entity) override;
 
-        ComponentRegistry();
     protected:
+        ComponentRegistry();
 
         //Storing the components
         std::vector<uint8_t> componentBuffer;
