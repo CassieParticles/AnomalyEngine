@@ -10,7 +10,7 @@ namespace Engine {
     {
         while (true)
         {
-            std::cout<<"Continuing to exist, World!\n";
+            //std::cout<<"Continuing to exist, World!\n";
         }
     }
 
