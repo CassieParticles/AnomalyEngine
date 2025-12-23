@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include <memory>
 #include <unordered_map>
+#include <refl.hpp>
 
 #include "ComponentConcept.h"
 #include "ComponentRegistry.h"
@@ -8,6 +9,14 @@
 namespace Engine
 {
     class Entity;
+
+    struct ComponentType
+    {
+        ComponentType(std::string name):name{std::move(name)} {}
+        std::string name;
+        IComponentRegistry* registry;
+        std::vector<ComponentType*> children;
+    };
 
     class Registry
     {
@@ -31,7 +40,17 @@ namespace Engine
         template<ComponentClass C>
         static bool HasRegistry();
 
+        template<ComponentClass C>
+        static void AddType();
+        template<ComponentClass C>
+        static ComponentType* GetType();
+        template<ComponentClass C>
+        static bool HasType();
+        template<ComponentClass C>
+        static void WalkParents(ComponentType* type, refl::type_descriptor<C> descriptor = refl::reflect<C>());
+
         static std::unordered_map<size_t, std::unique_ptr<IComponentRegistry>> registries;
+        static std::unordered_map<std::string, ComponentType> componentTypes;
         static EntityId nextFreeId;
     };
 
@@ -71,6 +90,8 @@ namespace Engine
         size_t hashCode = typeid(C).hash_code();
         registries.insert(std::make_pair(hashCode,std::unique_ptr<IComponentRegistry>(new ComponentRegistry<C>())));
 
+        AddType<C>();
+
         return GetRegistry<C>();
     }
 
@@ -89,5 +110,69 @@ namespace Engine
     {
         size_t hashCode = typeid(C).hash_code();
         return registries.contains(hashCode);
+    }
+
+    template<ComponentClass C>
+    void Registry::AddType()
+    {
+        if(HasType<C>()){return;}
+
+        refl::type_descriptor<C> descriptor;
+        std::string name = descriptor.name.str();
+
+        componentTypes.insert(std::make_pair(name,ComponentType(name)));
+        ComponentType* type = GetType<C>();
+
+        type->registry = GetRegistry<C>();
+
+        WalkParents<C>(type);
+    }
+
+    template<ComponentClass C>
+    ComponentType* Registry::GetType()
+    {
+        refl::type_descriptor<C> type;
+        return &componentTypes.at(type.name.str());
+    }
+
+    template<ComponentClass C>
+    bool Registry::HasType()
+    {
+        refl::type_descriptor<C> type;
+        std::string name = type.name.str();
+        return componentTypes.contains(name);
+    }
+
+    template<ComponentClass C>
+    void Registry::WalkParents(ComponentType* type, refl::type_descriptor<C> descriptor)
+    {
+        refl::util::for_each(refl::util::reflect_types(descriptor.declared_bases),[&](auto x)
+        {
+            //Find parent type (insert if doesn't exist)
+            auto parent = componentTypes.find(x.name.str());
+            if(parent==componentTypes.end())
+            {
+                componentTypes.insert(std::make_pair(x.name.str(),ComponentType(x.name.str())));
+                parent = componentTypes.find(x.name.str());
+            }
+
+            //Check if parent has child registered
+            bool found=false;
+            for(auto it:parent->second.children)
+            {
+                if(it==type)
+                {
+                    found=true;
+                    break;
+                }
+            }
+            //If child is unregistered, register child and WalkParents of parent class
+            if(!found)
+            {
+                parent->second.children.push_back(type);
+                WalkParents(&parent->second,x);
+                return;
+            }
+        });
     }
 }

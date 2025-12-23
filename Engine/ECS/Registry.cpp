@@ -6,6 +6,7 @@
 namespace Engine
 {
     std::unordered_map<size_t,std::unique_ptr<IComponentRegistry>> Registry::registries;
+    std::unordered_map<std::string, ComponentType> Registry::componentTypes;
     EntityId Registry::nextFreeId{};
 
     Entity Registry::CreateEntity(const std::string& name)
