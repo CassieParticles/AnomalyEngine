@@ -6,6 +6,7 @@
 
 void Engine::Application::Initialize()
 {
+
 }
 
 void Engine::Application::GameExit()

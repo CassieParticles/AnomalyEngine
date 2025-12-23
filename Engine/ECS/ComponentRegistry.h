@@ -9,8 +9,11 @@
 
 namespace Engine
 {
+    class Registry;
+
     class IComponentRegistry
     {
+        friend class Registry;
     public:
         virtual ~IComponentRegistry() = default;
     protected:
@@ -30,13 +33,16 @@ namespace Engine
     template<ComponentClass C>
     class ComponentRegistry final: IComponentRegistry
     {
+        friend class Registry;
     public:
         template<typename... Args>
-        CompPtr<C>&& AddComponent(EntityId entity, Args... args);
-        CompPtr<C>&& GetComponent(EntityId entity);
+        CompPtr<C> AddComponent(EntityId entity, Args... args);
+
+        CompPtr<C> GetComponent(EntityId entity);
         bool HasComponent(EntityId entity);
         void DeleteComponent(EntityId entity);
     protected:
+        ComponentRegistry();
         uint8_t* GetPtrIdx(size_t index) override;
         uint8_t* GetPtrEnt(EntityId entity) override;
         bool GetPtrExistIdx(size_t index) override { return index < nextFreeIdx; }
@@ -57,7 +63,7 @@ namespace Engine
         void UpdateInternals();
 
         bool HasInternal(EntityId entity){return compPtrInternals.contains(entity);}
-        CompPtrInternal<C>* GetInternal(EntityId entity){return compPtrInternals.at(entity);}
+        CompPtrInternal<C>* GetInternal(EntityId entity){return &compPtrInternals.at(entity);}
 
         //Smart pointer internals, used to track where components point to
         std::unordered_map<EntityId, CompPtrInternal<C>> compPtrInternals;
@@ -66,14 +72,14 @@ namespace Engine
 
     template<ComponentClass C>
     template<typename ... Args>
-    CompPtr<C>&& ComponentRegistry<C>::AddComponent(EntityId entity, Args... args)
+    CompPtr<C> ComponentRegistry<C>::AddComponent(EntityId entity, Args... args)
     {
         if(GetPtrExistEnt(entity)){return GetComponent(entity);}
 
         //TODO: Check if resize is needed
 
         //Create new component in location
-        uint8_t* location = GetPtrEnt(nextFreeIdx);
+        uint8_t* location = GetPtrIdx(nextFreeIdx);
         C* newComponent = new(location) C(args...);
 
         //Attach entity
@@ -84,11 +90,11 @@ namespace Engine
 
         AddInternal(entity);
 
-        return GetComponent(newComponent);
+        return GetComponent(entity);
     }
 
     template<ComponentClass C>
-    CompPtr<C>&& ComponentRegistry<C>::GetComponent(EntityId entity)
+    CompPtr<C> ComponentRegistry<C>::GetComponent(EntityId entity)
     {
         CompPtrInternal<C>* ptr = GetInternal(entity);
         return CompPtr<C>{ptr};
@@ -119,9 +125,15 @@ namespace Engine
     }
 
     template<ComponentClass C>
+    ComponentRegistry<C>::ComponentRegistry()
+    {
+        componentBuffer.resize(1024);
+    }
+
+    template<ComponentClass C>
     uint8_t* ComponentRegistry<C>::GetPtrIdx(size_t index)
     {
-        return compPtrInternals.data() + index * sizeof(C);
+        return componentBuffer.data() + index * sizeof(C);
     }
 
     template<ComponentClass C>
