@@ -5,78 +5,35 @@
 namespace Engine
 {
     template<ComponentClass C>
-    class ComponentRegistry;
+    class CompPtrInternal;
 
     template<ComponentClass C>
-    class CompPtrInternal
-    {
-        friend class ComponentRegistry<C>;
-    public:
-        C& operator*() const;
-        C* operator->();
-        C* operator->() const;
-    private:
-        CompPtrInternal(EntityId entity, C* component);
-
-        EntityId entity;
-        C* component;
-    };
+    class ComponentRegistry;
 
     template<ComponentClass C>
     class CompPtr
     {
         friend class ComponentRegistry<C>;
     public:
-        C& operator*() const;
-        C* operator->();
-        C* operator->() const;
+        C& operator*(){return *internal;}
+        C* operator->(){return internal->operator->();}
+        C* operator->() const{return internal->operator->();}
     private:
-        CompPtr(CompPtrInternal<C>* internals);
-        CompPtrInternal<C>* internals;
+        CompPtr(CompPtrInternal<C>* internal):internal{internal}{}
+        CompPtrInternal<C>* internal;
     };
 
-
-
     template<ComponentClass C>
-    C& CompPtrInternal<C>::operator*() const
+    class CompPtrInternal
     {
-        return *component;
-    }
-
-    template<ComponentClass C>
-    C * CompPtrInternal<C>::operator->()
-    {
-        return component;
-    }
-
-    template<ComponentClass C>
-    C * CompPtrInternal<C>::operator->() const
-    {
-        return component;
-    }
-
-
-    template<ComponentClass C>
-    CompPtrInternal<C>::CompPtrInternal(EntityId entity, C *component):entity{entity},component{component} {}
-
-    template<ComponentClass C>
-    C & CompPtr<C>::operator*() const
-    {
-        return *internals;
-    }
-
-    template<ComponentClass C>
-    C * CompPtr<C>::operator->()
-    {
-        return internals->operator->();
-    }
-
-    template<ComponentClass C>
-    C * CompPtr<C>::operator->() const
-    {
-        return internals->operator->();
-    }
-
-    template<ComponentClass C>
-    CompPtr<C>::CompPtr(CompPtrInternal<C> *internals):internals(internals) {}
+        friend class ComponentRegistry<C>;
+    public:
+        C& operator*(){return *component;}
+        C* operator->(){return component;}
+        C* operator->() const{return component;}
+    private:
+        CompPtrInternal(C* component, EntityId entity):component{component},entity{entity}{}
+        C* component;
+        EntityId entity;
+    };
 } // Engine

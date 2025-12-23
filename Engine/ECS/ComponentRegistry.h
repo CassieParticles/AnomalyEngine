@@ -11,205 +11,163 @@ namespace Engine
 {
     class Registry;
 
-
     class IComponentRegistry
     {
         friend class Registry;
     public:
-        virtual void RemoveComponent(EntityId entity) = 0;
-        virtual bool HasComponent(EntityId entity) = 0;
-        virtual Component* GetComponent(EntityId entity) = 0;
+        virtual ~IComponentRegistry() = default;
     protected:
-        IComponentRegistry() = default;
+        //Internal utility functions
+        virtual uint8_t* GetPtrIdx(size_t index) = 0;
+        virtual uint8_t* GetPtrEnt(EntityId entity) = 0;
+        virtual bool GetPtrExistIdx(size_t index) = 0;
+        virtual bool GetPtrExistEnt(EntityId entity) = 0;
 
-        //Ways for derived templates to access private component members, since generic friend classes won't work
+        virtual void MoveCompLoc(size_t oldIndex, size_t newIndex) = 0;
+        virtual void DelComp(EntityId entity) = 0;
+
         void OnComponentAdded(EntityId entity, Component* component);
-        void OnComponentCopied(EntityId entity, Component* component);
         void OnComponentRemoved(EntityId entity, Component* component);
-
-        virtual void resize() = 0;
     };
 
     template<ComponentClass C>
-    class ComponentRegistry final:public IComponentRegistry
+    class ComponentRegistry final: IComponentRegistry
     {
         friend class Registry;
-        public:
+    public:
         template<typename... Args>
         CompPtr<C> AddComponent(EntityId entity, Args... args);
-        void RemoveComponent(EntityId entity) override;
-        bool HasComponent(EntityId entity) override;
-        Component* GetComponent(EntityId entity) override;
 
-        CompPtr<C> GetCompPtr(EntityId entity);
-
+        CompPtr<C> GetComponent(EntityId entity);
+        bool HasComponent(EntityId entity);
+        void DeleteComponent(EntityId entity);
     protected:
         ComponentRegistry();
+        uint8_t* GetPtrIdx(size_t index) override;
+        uint8_t* GetPtrEnt(EntityId entity) override;
+        bool GetPtrExistIdx(size_t index) override { return index < nextFreeIdx; }
+        bool GetPtrExistEnt(EntityId entity) override { return entIdxMap.contains(entity); }
 
-        //Storing the components
+        void MoveCompLoc(size_t oldIndex, size_t newIndex) override;
+        void DelComp(EntityId entity) override;
+
+        void resize();
+
+        //Buffer for storing components
         std::vector<uint8_t> componentBuffer;
-        size_t componentCount;
+        //Map between entityId and index of component
+        std::unordered_map<EntityId, size_t> entIdxMap;
+        //Next free index
+        size_t nextFreeIdx{};
 
-        //The index of each component attached to Entity
-        std::unordered_map<EntityId, size_t> entityIndexMap;
+        void AddInternal(EntityId entity);
+        void UpdateInternal(EntityId entity);
+        void UpdateInternals();
 
-        //Smart pointers for components
-        CompPtrInternal<C>* AddInternal(EntityId entity);
-        CompPtrInternal<C>* GetInternal(EntityId entity);
-        CompPtrInternal<C>* UpdateInternal(EntityId entity);
-        void UpdateAllInternals();
-        std::unordered_map<EntityId, CompPtrInternal<C>> CompPtrs;
+        bool HasInternal(EntityId entity){return compPtrInternals.contains(entity);}
+        CompPtrInternal<C>* GetInternal(EntityId entity){return &compPtrInternals.at(entity);}
 
-        void resize() override;
+        //Smart pointer internals, used to track where components point to
+        std::unordered_map<EntityId, CompPtrInternal<C>> compPtrInternals;
     };
+
 
     template<ComponentClass C>
     template<typename ... Args>
     CompPtr<C> ComponentRegistry<C>::AddComponent(EntityId entity, Args... args)
     {
-        //If component already exists, return
-        if (Component* component = GetComponent(entity))
-        {
-#ifdef DEBUG
-            std::cout<<"Warning, attempt to create component failed: Component already exists\n";
-#endif
-            return GetCompPtr(entity);
-        }
-        //Check whether buffer needs to be resized
-        if ((componentCount + 1) * sizeof(C) > componentBuffer.size())
+        if(GetPtrExistEnt(entity)){return GetComponent(entity);}
+
+        if(componentBuffer.size() < (nextFreeIdx + 1) * sizeof(C))
         {
             resize();
         }
 
-        //Create new component using placement new operator
-        uint8_t* newComponentLocation = componentBuffer.data() + componentCount * sizeof(C);
-        C* newComponent = new(newComponentLocation) C(args...);
+        //Create new component in location
+        uint8_t* location = GetPtrIdx(nextFreeIdx);
+        C* newComponent = new(location) C(args...);
 
-        //Attach entity ID to new component
+        //Attach entity
+        entIdxMap.insert(std::make_pair(entity, nextFreeIdx));
         OnComponentAdded(entity, newComponent);
-        entityIndexMap.insert(std::make_pair(entity, componentCount));
 
-        //Update next free pointer
-        componentCount++;
+        nextFreeIdx++;
 
         AddInternal(entity);
 
-        return GetCompPtr(entity);
+        return GetComponent(entity);
     }
 
     template<ComponentClass C>
-    void ComponentRegistry<C>::RemoveComponent(EntityId entity)
+    CompPtr<C> ComponentRegistry<C>::GetComponent(EntityId entity)
     {
-        int componentIndex = entityIndexMap.at(entity);
-        C* component = reinterpret_cast<C*>(GetComponent(entity));
-        if (!component)
-        {
-            return;
-        }
-
-        //Call remove component functions & destructor
-        OnComponentRemoved(entity,component);
-        component->~C();
-
-        //If component is not final component, copy final component into component location
-        if (componentIndex != componentCount - 1)
-        {
-            uint8_t* componentLocation = reinterpret_cast<uint8_t*>(component);
-            uint8_t* finalComponentLocation = componentBuffer.data() + (componentCount - 1) * sizeof(C);
-
-            //Get the final component's entity id
-            EntityId finalEntity = reinterpret_cast<C*>(finalComponentLocation)->getEntity();
-
-            //Copy the component
-            memcpy(componentLocation, finalComponentLocation, sizeof(C));
-
-            //Update the final component's map entry
-            entityIndexMap.at(finalEntity) = componentIndex;
-
-            UpdateInternal(finalEntity);
-        }
-
-        //Remove the entity
-        entityIndexMap.erase(entity);
-        componentCount--;
-
-        UpdateInternal(entity);
+        CompPtrInternal<C>* ptr = GetInternal(entity);
+        return CompPtr<C>{ptr};
     }
 
     template<ComponentClass C>
     bool ComponentRegistry<C>::HasComponent(EntityId entity)
     {
-        return entityIndexMap.contains(entity);
+        return GetPtrEnt(entity);
     }
 
     template<ComponentClass C>
-    Component* ComponentRegistry<C>::GetComponent(EntityId entity)
+    void ComponentRegistry<C>::DeleteComponent(EntityId entity)
     {
-        auto compIter = entityIndexMap.find(entity);
-        if (compIter == entityIndexMap.end()) { return nullptr;}
+        if(!GetPtrExistEnt(entity)){return;}
 
-        uint8_t* componentLocation = componentBuffer.data() + compIter->second * sizeof(C);
-        auto component = reinterpret_cast<Component*>(componentLocation);
+        DelComp(entity);
 
-        return component;
+        if(entIdxMap.at(entity) != nextFreeIdx - 1)
+        {
+            MoveCompLoc(nextFreeIdx - 1, entIdxMap.at(entity));
+        }
+
+        entIdxMap.erase(entity);
+        nextFreeIdx--;
+
+        UpdateInternal(entity);
     }
 
     template<ComponentClass C>
-    CompPtr<C> ComponentRegistry<C>::GetCompPtr(EntityId entity)
-    {
-        CompPtrInternal<C>* ptrInternal = AddInternal(entity);
-
-        return CompPtr<C>(ptrInternal);
-    }
-
-    template<ComponentClass C>
-    ComponentRegistry<C>::ComponentRegistry():componentCount(0)
+    ComponentRegistry<C>::ComponentRegistry()
     {
         componentBuffer.resize(1024);
     }
 
     template<ComponentClass C>
-    CompPtrInternal<C> * ComponentRegistry<C>::AddInternal(EntityId entity)
+    uint8_t* ComponentRegistry<C>::GetPtrIdx(size_t index)
     {
-        if (CompPtrs.contains(entity)){return &CompPtrs.at(entity);}
-
-        size_t componentIndex = entityIndexMap.at(entity);
-        uint8_t* componentLocation = componentBuffer.data() + componentIndex * sizeof(C);
-        C* component = reinterpret_cast<C*>(componentLocation);
-
-        CompPtrs.insert(std::make_pair(entity, CompPtrInternal<C>(entity, component)));
-
-        return &CompPtrs.at(entity);
+        return componentBuffer.data() + index * sizeof(C);
     }
 
     template<ComponentClass C>
-    CompPtrInternal<C> * ComponentRegistry<C>::GetInternal(EntityId entity)
+    uint8_t* ComponentRegistry<C>::GetPtrEnt(EntityId entity)
     {
-        if (CompPtrs.contains(entity)){return &CompPtrs.at(entity);}
-        return nullptr;
+        if(!GetPtrExistEnt(entity)){ return nullptr;}
+        return GetPtrIdx(entIdxMap.at(entity));
     }
 
     template<ComponentClass C>
-    CompPtrInternal<C> * ComponentRegistry<C>::UpdateInternal(EntityId entity)
+    void ComponentRegistry<C>::MoveCompLoc(size_t oldIndex, size_t newIndex)
     {
-        if (!CompPtrs.contains(entity)){return nullptr;}
-        CompPtrInternal<C>* ptrInternal = &CompPtrs.at(entity);
+        uint8_t* location = GetPtrIdx(newIndex);
+        uint8_t* source = GetPtrIdx(oldIndex);
 
-        size_t componentIndex = entityIndexMap.at(entity);
-        uint8_t* componentLocation = componentBuffer.data() + componentIndex * sizeof(C);
+        C* component = reinterpret_cast<C*>(source);
 
-        ptrInternal->component = reinterpret_cast<C*>(componentLocation);
+        memcpy(location, source, sizeof(C));
 
-        return ptrInternal;
+        entIdxMap.at(component->getEntity()) = newIndex;
     }
 
     template<ComponentClass C>
-    void ComponentRegistry<C>::UpdateAllInternals()
+    void ComponentRegistry<C>::DelComp(EntityId entity)
     {
-        for (auto pair: CompPtrs)
-        {
-            UpdateInternal(pair.first);
-        }
+        C* component = reinterpret_cast<C*>(GetPtrEnt(entity));
+
+        component->~C();
+        OnComponentRemoved(entity, dynamic_cast<Component*>(component));
     }
 
     template<ComponentClass C>
@@ -217,6 +175,32 @@ namespace Engine
     {
         componentBuffer.resize(componentBuffer.size() * 2);
 
-        UpdateAllInternals();
+        UpdateInternals();
+    }
+
+    template<ComponentClass C>
+    void ComponentRegistry<C>::AddInternal(EntityId entity)
+    {
+        if(HasInternal(entity)){return;}
+
+        C* component = reinterpret_cast<C*>(GetPtrEnt(entity));
+
+        compPtrInternals.insert(std::make_pair(entity, CompPtrInternal<C>{component, entity}));
+    }
+
+    template<ComponentClass C>
+    void ComponentRegistry<C>::UpdateInternal(EntityId entity)
+    {
+        CompPtrInternal<C>* ptr = GetInternal(entity);
+        ptr->component = reinterpret_cast<C*>(GetPtrEnt(entity));
+    }
+
+    template<ComponentClass C>
+    void ComponentRegistry<C>::UpdateInternals()
+    {
+        for(auto pair:compPtrInternals)
+        {
+            UpdateInternal(pair.first);
+        }
     }
 } // Engine
