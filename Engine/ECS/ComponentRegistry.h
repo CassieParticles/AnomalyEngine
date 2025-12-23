@@ -51,6 +51,8 @@ namespace Engine
         void MoveCompLoc(size_t oldIndex, size_t newIndex) override;
         void DelComp(EntityId entity) override;
 
+        void resize();
+
         //Buffer for storing components
         std::vector<uint8_t> componentBuffer;
         //Map between entityId and index of component
@@ -76,7 +78,10 @@ namespace Engine
     {
         if(GetPtrExistEnt(entity)){return GetComponent(entity);}
 
-        //TODO: Check if resize is needed
+        if(componentBuffer.size() < (nextFreeIdx + 1) * sizeof(C))
+        {
+            resize();
+        }
 
         //Create new component in location
         uint8_t* location = GetPtrIdx(nextFreeIdx);
@@ -163,6 +168,14 @@ namespace Engine
 
         component->~C();
         OnComponentRemoved(entity, dynamic_cast<Component*>(component));
+    }
+
+    template<ComponentClass C>
+    void ComponentRegistry<C>::resize()
+    {
+        componentBuffer.resize(componentBuffer.size() * 2);
+
+        UpdateInternals();
     }
 
     template<ComponentClass C>
