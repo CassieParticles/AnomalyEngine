@@ -7,9 +7,13 @@
 
 namespace Engine
 {
+    class Entity;
+
     class Registry
     {
     public:
+        static Entity CreateEntity(const std::string& name = "Game Entity");
+
         template<ComponentClass C,typename... Args>
         static CompPtr<C> AddComponent(EntityId entity,Args... args);
         template<ComponentClass C>
@@ -28,6 +32,7 @@ namespace Engine
         static bool HasRegistry();
 
         static std::unordered_map<size_t, std::unique_ptr<IComponentRegistry>> registries;
+        static EntityId nextFreeId;
     };
 
     template<ComponentClass C, typename ... Args>

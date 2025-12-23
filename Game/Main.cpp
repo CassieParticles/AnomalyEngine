@@ -2,11 +2,12 @@
 #include <iostream>
 
 #include "ECS/Component.h"
-#include "ECS/Entity.h"
 
 void Engine::Application::Initialize()
 {
+    Entity player = Registry::CreateEntity("Player");
 
+    CompPtr<TagComponent> playerName = player.GetComponent<TagComponent>();
 }
 
 void Engine::Application::GameExit()

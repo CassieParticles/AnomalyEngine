@@ -11,9 +11,17 @@ namespace Engine
         Entity(EntityId entity);
         Entity(const Entity& other);
 
+        template<ComponentClass C, typename... Args>
+        CompPtr<C> AddComponent(Args... args){return Registry::AddComponent<C>(entityId, args...);}
+        template<ComponentClass C>
+        CompPtr<C> GetComponent(){return Registry::GetComponent<C>(entityId);}
+        template<ComponentClass C>
+        bool HasComponent(){return Registry::HasComponent<C>(entityId);}
+        template<ComponentClass C>
+        void RemoveComponent(){Registry::RemoveComponent<C>(entityId);}
+
         operator EntityId() const{return entityId;}
     private:
         EntityId entityId;
     };
-
 }
