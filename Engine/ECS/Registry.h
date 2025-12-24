@@ -26,11 +26,16 @@ namespace Engine
         template<ComponentClass C,typename... Args>
         static CompPtr<C> AddComponent(EntityId entity,Args... args);
         template<ComponentClass C>
+        static CompPtr<C> GetComponentExact(EntityId entity);
+        template<ComponentClass C>
+        static bool HasComponentExact(EntityId entity);
+        template<ComponentClass C>
+        static void RemoveComponent(EntityId entity);
+
+        template<ComponentClass C>
         static CompPtr<C> GetComponent(EntityId entity);
         template<ComponentClass C>
         static bool HasComponent(EntityId entity);
-        template<ComponentClass C>
-        static void RemoveComponent(EntityId entity);
     protected:
         //Component registries
         template<ComponentClass C>
@@ -39,6 +44,9 @@ namespace Engine
         static ComponentRegistry<C>* GetRegistry();
         template<ComponentClass C>
         static bool HasRegistry();
+
+        static CompPtrInternal* GetComponentRecurse(EntityId entity, ComponentType* type);
+        static bool HasComponentRecurse(EntityId entity, ComponentType* type);
 
         template<ComponentClass C>
         static void AddType();
@@ -63,7 +71,7 @@ namespace Engine
     }
 
     template<ComponentClass C>
-    CompPtr<C> Registry::GetComponent(EntityId entity)
+    CompPtr<C> Registry::GetComponentExact(EntityId entity)
     {
         ComponentRegistry<C>* registry = AddRegistry<C>();
         CompPtrInternal* internal = registry->GetComponent(entity);
@@ -71,7 +79,7 @@ namespace Engine
     }
 
     template<ComponentClass C>
-    bool Registry::HasComponent(EntityId entity)
+    bool Registry::HasComponentExact(EntityId entity)
     {
         ComponentRegistry<C>* registry = AddRegistry<C>();
         return registry->HasComponent(entity);
@@ -82,6 +90,22 @@ namespace Engine
     {
         ComponentRegistry<C>* registry = AddRegistry<C>();
         return registry->RemoveComponent(entity);
+    }
+
+    template<ComponentClass C>
+    CompPtr<C> Registry::GetComponent(EntityId entity)
+    {
+        ComponentType* type = GetType<C>();
+
+        CompPtrInternal* internal = GetComponentRecurse(entity,type);
+        return CompPtr<C>(internal);
+    }
+
+    template<ComponentClass C>
+    bool Registry::HasComponent(EntityId entity)
+    {
+        ComponentType* type = GetType<C>();
+        return HasComponentRecurse(entity,type);
     }
 
     template<ComponentClass C>
@@ -117,7 +141,12 @@ namespace Engine
     template<ComponentClass C>
     void Registry::AddType()
     {
-        if(HasType<C>()){return;}
+        if(HasType<C>())
+        {
+            ComponentType* type = GetType<C>();
+            type->registry=GetRegistry<C>();
+            return;
+        }
 
         refl::type_descriptor<C> descriptor;
         std::string name = descriptor.name.str();
@@ -156,6 +185,8 @@ namespace Engine
             {
                 componentTypes.insert(std::make_pair(x.name.str(),ComponentType(x.name.str())));
                 parent = componentTypes.find(x.name.str());
+
+                parent->second.registry = nullptr;
             }
 
             //Check if parent has child registered

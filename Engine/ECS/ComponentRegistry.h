@@ -16,6 +16,10 @@ namespace Engine
         friend class Registry;
     public:
         virtual ~IComponentRegistry() = default;
+
+        virtual CompPtrInternal* GetComponent(EntityId entity) = 0;
+        virtual bool HasComponent(EntityId entity) = 0;
+        virtual void DeleteComponent(EntityId entity) = 0;
     protected:
         //Internal utility functions
         virtual uint8_t* GetPtrIdx(size_t index) = 0;
@@ -55,9 +59,9 @@ namespace Engine
         template<typename... Args>
         CompPtrInternal *AddComponent(EntityId entity, Args... args);
 
-        CompPtrInternal *GetComponent(EntityId entity);
-        bool HasComponent(EntityId entity);
-        void DeleteComponent(EntityId entity);
+        CompPtrInternal *GetComponent(EntityId entity) override;
+        bool HasComponent(EntityId entity) override;
+        void DeleteComponent(EntityId entity) override;
     protected:
         ComponentRegistry();
         uint8_t* GetPtrIdx(size_t index) override;
@@ -69,17 +73,6 @@ namespace Engine
         void DelComp(EntityId entity) override;
 
         void resize();
-
-
-
-        // void AddInternal(EntityId entity);
-        // void UpdateInternal(EntityId entity);
-        // void UpdateInternals();
-        //
-        // bool HasInternal(EntityId entity){return compPtrInternals.contains(entity);}
-        // CompPtrInternal<C>* GetInternal(EntityId entity){return &compPtrInternals.at(entity);}
-
-
     };
 
 
