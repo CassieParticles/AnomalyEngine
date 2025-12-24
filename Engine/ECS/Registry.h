@@ -97,6 +97,7 @@ namespace Engine
     {
         ComponentType* type = GetType<C>();
 
+        if(type==nullptr){return CompPtr<C>(nullptr);}
         CompPtrInternal* internal = GetComponentRecurse(entity,type);
         return CompPtr<C>(internal);
     }
@@ -162,6 +163,7 @@ namespace Engine
     template<ComponentClass C>
     ComponentType* Registry::GetType()
     {
+        if(!HasType<C>()){return nullptr;}
         refl::type_descriptor<C> type;
         return &componentTypes.at(type.name.str());
     }

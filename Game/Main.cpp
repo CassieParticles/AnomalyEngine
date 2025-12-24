@@ -10,7 +10,7 @@ void Engine::Application::Initialize()
     Entity playerB = Registry::CreateEntity("PlayerB");
 
     playerA.AddComponent<SillyTestComponent>();
-    playerB.AddComponent<GoofyTestComponent>();
+    //playerB.AddComponent<GoofyTestComponent>();
 
     CompPtr<SillyTestComponent> ptr = playerA.GetComponent<SillyTestComponent>();
     CompPtr<GoofyTestComponent> ptr2 = playerB.GetComponent<GoofyTestComponent>();
