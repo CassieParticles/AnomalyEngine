@@ -27,6 +27,8 @@ namespace Engine
         friend class Registry;
     public:
         C* operator->(){return reinterpret_cast<C*>(internal->GetPtr());}
+
+        operator bool(){return internal;}
     private:
         CompPtr(CompPtrInternal* internal):internal{internal}{}
         CompPtrInternal* internal;
