@@ -58,14 +58,16 @@ namespace Engine
     CompPtr<C> Registry::AddComponent(EntityId entity, Args... args)
     {
         ComponentRegistry<C>* registry = AddRegistry<C>();
-        return registry->AddComponent(entity, args...);
+        CompPtrInternal* internal = registry->AddComponent(entity, args...);
+        return CompPtr<C>(internal);
     }
 
     template<ComponentClass C>
     CompPtr<C> Registry::GetComponent(EntityId entity)
     {
         ComponentRegistry<C>* registry = AddRegistry<C>();
-        return registry->GetComponent(entity);
+        CompPtrInternal* internal = registry->GetComponent(entity);
+        return CompPtr<C>(internal);
     }
 
     template<ComponentClass C>

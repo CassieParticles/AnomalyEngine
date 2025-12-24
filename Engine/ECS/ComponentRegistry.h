@@ -28,6 +28,23 @@ namespace Engine
 
         void OnComponentAdded(EntityId entity, Component* component);
         void OnComponentRemoved(EntityId entity, Component* component);
+
+        //Buffer for storing components
+        std::vector<uint8_t> componentBuffer;
+        //Map between entityId and index of component
+        std::unordered_map<EntityId, size_t> entIdxMap;
+        //Next free index
+        size_t nextFreeIdx{};
+
+        void AddInternal(EntityId entity);
+        void UpdateInternal(EntityId entity);
+        void UpdateInternals();
+
+        bool HasInternal(EntityId entity);
+        CompPtrInternal* GetInternal(EntityId entity);
+
+        //Smart pointer internals, used to track where components point to
+        std::unordered_map<EntityId, CompPtrInternal> compPtrInternals;
     };
 
     template<ComponentClass C>
@@ -36,9 +53,9 @@ namespace Engine
         friend class Registry;
     public:
         template<typename... Args>
-        CompPtr<C> AddComponent(EntityId entity, Args... args);
+        CompPtrInternal *AddComponent(EntityId entity, Args... args);
 
-        CompPtr<C> GetComponent(EntityId entity);
+        CompPtrInternal *GetComponent(EntityId entity);
         bool HasComponent(EntityId entity);
         void DeleteComponent(EntityId entity);
     protected:
@@ -53,28 +70,22 @@ namespace Engine
 
         void resize();
 
-        //Buffer for storing components
-        std::vector<uint8_t> componentBuffer;
-        //Map between entityId and index of component
-        std::unordered_map<EntityId, size_t> entIdxMap;
-        //Next free index
-        size_t nextFreeIdx{};
 
-        void AddInternal(EntityId entity);
-        void UpdateInternal(EntityId entity);
-        void UpdateInternals();
 
-        bool HasInternal(EntityId entity){return compPtrInternals.contains(entity);}
-        CompPtrInternal<C>* GetInternal(EntityId entity){return &compPtrInternals.at(entity);}
+        // void AddInternal(EntityId entity);
+        // void UpdateInternal(EntityId entity);
+        // void UpdateInternals();
+        //
+        // bool HasInternal(EntityId entity){return compPtrInternals.contains(entity);}
+        // CompPtrInternal<C>* GetInternal(EntityId entity){return &compPtrInternals.at(entity);}
 
-        //Smart pointer internals, used to track where components point to
-        std::unordered_map<EntityId, CompPtrInternal<C>> compPtrInternals;
+
     };
 
 
     template<ComponentClass C>
     template<typename ... Args>
-    CompPtr<C> ComponentRegistry<C>::AddComponent(EntityId entity, Args... args)
+    CompPtrInternal* ComponentRegistry<C>::AddComponent(EntityId entity, Args... args)
     {
         if(GetPtrExistEnt(entity)){return GetComponent(entity);}
 
@@ -99,10 +110,10 @@ namespace Engine
     }
 
     template<ComponentClass C>
-    CompPtr<C> ComponentRegistry<C>::GetComponent(EntityId entity)
+    CompPtrInternal* ComponentRegistry<C>::GetComponent(EntityId entity)
     {
-        CompPtrInternal<C>* ptr = GetInternal(entity);
-        return CompPtr<C>{ptr};
+        if(!HasInternal(entity)){return nullptr;}
+        return GetInternal(entity);
     }
 
     template<ComponentClass C>
@@ -176,31 +187,5 @@ namespace Engine
         componentBuffer.resize(componentBuffer.size() * 2);
 
         UpdateInternals();
-    }
-
-    template<ComponentClass C>
-    void ComponentRegistry<C>::AddInternal(EntityId entity)
-    {
-        if(HasInternal(entity)){return;}
-
-        C* component = reinterpret_cast<C*>(GetPtrEnt(entity));
-
-        compPtrInternals.insert(std::make_pair(entity, CompPtrInternal<C>{component, entity}));
-    }
-
-    template<ComponentClass C>
-    void ComponentRegistry<C>::UpdateInternal(EntityId entity)
-    {
-        CompPtrInternal<C>* ptr = GetInternal(entity);
-        ptr->component = reinterpret_cast<C*>(GetPtrEnt(entity));
-    }
-
-    template<ComponentClass C>
-    void ComponentRegistry<C>::UpdateInternals()
-    {
-        for(auto pair:compPtrInternals)
-        {
-            UpdateInternal(pair.first);
-        }
     }
 } // Engine
