@@ -4,25 +4,26 @@
 #include "Components/SillyTestComponent.h"
 #include "ECS/Component.h"
 
+class Pack
+{
+public:
+    std::string data;
+};
+
 void Engine::Application::Initialize()
 {
-    Entity playerA = Registry::CreateEntity("PlayerA");
-    Entity playerB = Registry::CreateEntity("PlayerB");
+    Entity entity = Registry::CreateEntity("Hello, my name is Daniel");
 
-    playerA.AddComponent<SillyTestComponent>();
-    //playerB.AddComponent<GoofyTestComponent>();
+    auto ptr = entity.GetComponent<TagComponent>();
 
-    CompPtr<SillyTestComponent> ptr = playerA.GetComponent<SillyTestComponent>();
-    CompPtr<GoofyTestComponent> ptr2 = playerB.GetComponent<GoofyTestComponent>();
+    std::cout<<ptr->name<<std::endl;
 
-    ptr->data = 5;
-    ptr2->data = 23;
+    for(int i=0;i<1024;++i)
+    {
+        Entity temp = Registry::CreateEntity("Hello, my name is Paul");
+    }
 
-    CompPtr<TestComponent> ptr3 = playerA.GetComponent<TestComponent>();
-    CompPtr<TestComponent> ptr4 = playerB.GetComponent<TestComponent>();
-
-    std::cout << ptr3->data << std::endl;
-    std::cout << ptr4->data << std::endl;
+    std::cout<<ptr->name<<std::endl;
 }
 
 void Engine::Application::GameExit()
