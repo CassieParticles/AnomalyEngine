@@ -34,7 +34,9 @@ namespace Engine
         void OnComponentRemoved(EntityId entity, Component* component);
 
         //Buffer for storing components
-        std::vector<uint8_t> componentBuffer;
+        uint8_t* buffer;
+        size_t bufferSize;
+
         //Map between entityId and index of component
         std::unordered_map<EntityId, size_t> entIdxMap;
         //Next free index
@@ -82,7 +84,7 @@ namespace Engine
     {
         if(GetPtrExistEnt(entity)){return GetComponent(entity);}
 
-        if(componentBuffer.size() < (nextFreeIdx + 1) * sizeof(C))
+        if(bufferSize < (nextFreeIdx + 1) * sizeof(C))
         {
             resize();
         }
@@ -136,13 +138,15 @@ namespace Engine
     template<ComponentClass C>
     ComponentRegistry<C>::ComponentRegistry()
     {
-        componentBuffer.resize(1024);
+
+        bufferSize = 1024;
+        buffer = new uint8_t[bufferSize];
     }
 
     template<ComponentClass C>
     uint8_t* ComponentRegistry<C>::GetPtrIdx(size_t index)
     {
-        return componentBuffer.data() + index * sizeof(C);
+        return buffer + index * sizeof(C);
     }
 
     template<ComponentClass C>
@@ -177,7 +181,15 @@ namespace Engine
     template<ComponentClass C>
     void ComponentRegistry<C>::resize()
     {
-        componentBuffer.resize(componentBuffer.size() * 2);
+
+        uint8_t* newLocation = new uint8_t[bufferSize * 2];
+
+        memcpy(newLocation, buffer, bufferSize);
+        delete[] buffer;
+
+        buffer = newLocation;
+
+        bufferSize*=2;
 
         UpdateInternals();
     }
