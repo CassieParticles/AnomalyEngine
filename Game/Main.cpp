@@ -17,13 +17,19 @@ void Engine::Application::Initialize()
     auto ptr = entity.GetComponent<TagComponent>();
 
     std::cout<<ptr->name<<std::endl;
+    Entity entityArr[5]{};
 
-    for(int i=0;i<1024;++i)
+    for(int i=0;i<5;++i)
     {
-        Entity temp = Registry::CreateEntity("Hello, my name is Paul");
+        entityArr[i] = Registry::CreateEntity("Hello, my name is Paul");
     }
 
-    std::cout<<ptr->name<<std::endl;
+    Registry::DeleteEntity(entity);
+
+    if(ptr)
+    {
+        std::cout<<ptr->name<<std::endl;
+    }
 }
 
 void Engine::Application::GameExit()
