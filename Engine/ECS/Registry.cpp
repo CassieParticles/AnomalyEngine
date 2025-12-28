@@ -17,6 +17,14 @@ namespace Engine
         return entity;
     }
 
+    void Registry::DeleteEntity(EntityId entity)
+    {
+        for(auto& pair : registries)
+        {
+            pair.second->DeleteComponent(entity);
+        }
+    }
+
     CompPtrInternal* Registry::GetComponentRecurse(EntityId entity, ComponentType* type)
     {
         //If this type has one

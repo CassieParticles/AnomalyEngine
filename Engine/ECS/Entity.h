@@ -25,6 +25,8 @@ namespace Engine
         template<ComponentClass C>
         bool HasComponent(){return Registry::HasComponent<C>(entityId);}
 
+        void DeleteEntity(){Registry::DeleteEntity(entityId);}
+
         operator EntityId() const{return entityId;}
     private:
         EntityId entityId;

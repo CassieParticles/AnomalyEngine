@@ -36,6 +36,8 @@ namespace Engine
         static CompPtr<C> GetComponent(EntityId entity);
         template<ComponentClass C>
         static bool HasComponent(EntityId entity);
+
+        static void DeleteEntity(EntityId entity);
     protected:
         //Component registries
         template<ComponentClass C>
