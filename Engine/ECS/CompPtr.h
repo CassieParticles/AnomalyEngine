@@ -28,7 +28,11 @@ namespace Engine
     public:
         C* operator->(){return reinterpret_cast<C*>(internal->GetPtr());}
 
-        operator bool(){return internal;}
+        operator bool()
+        {
+            if(!internal){return false;}
+            return internal->GetPtr();
+        }
     private:
         CompPtr(CompPtrInternal* internal):internal{internal}{}
         CompPtrInternal* internal;
