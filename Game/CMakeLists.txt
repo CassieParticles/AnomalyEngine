@@ -2,6 +2,8 @@
 
 add_library(Game
         Main.cpp
+        Components/SillyTestComponent.cpp
+        Components/SillyTestComponent.h
 )
 
 #Add Anomaly Engine

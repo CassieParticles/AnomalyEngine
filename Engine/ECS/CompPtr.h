@@ -4,36 +4,33 @@
 
 namespace Engine
 {
-    template<ComponentClass C>
     class CompPtrInternal;
 
-    template<ComponentClass C>
-    class ComponentRegistry;
+    class IComponentRegistry;
+
+    class Registry;
+
+    class CompPtrInternal
+    {
+        friend class IComponentRegistry;
+    public:
+        uint8_t* GetPtr() const {return component;}
+    private:
+        CompPtrInternal(uint8_t* component, EntityId entity):component{component},entity{entity}{}
+        uint8_t* component;
+        EntityId entity;
+    };
 
     template<ComponentClass C>
     class CompPtr
     {
-        friend class ComponentRegistry<C>;
+        friend class Registry;
     public:
-        C& operator*(){return *internal;}
-        C* operator->(){return internal->operator->();}
-        C* operator->() const{return internal->operator->();}
-    private:
-        CompPtr(CompPtrInternal<C>* internal):internal{internal}{}
-        CompPtrInternal<C>* internal;
-    };
+        C* operator->(){return reinterpret_cast<C*>(internal->GetPtr());}
 
-    template<ComponentClass C>
-    class CompPtrInternal
-    {
-        friend class ComponentRegistry<C>;
-    public:
-        C& operator*(){return *component;}
-        C* operator->(){return component;}
-        C* operator->() const{return component;}
+        operator bool(){return internal;}
     private:
-        CompPtrInternal(C* component, EntityId entity):component{component},entity{entity}{}
-        C* component;
-        EntityId entity;
+        CompPtr(CompPtrInternal* internal):internal{internal}{}
+        CompPtrInternal* internal;
     };
 } // Engine
