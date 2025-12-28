@@ -16,6 +16,10 @@ namespace Engine
         friend class Registry;
     public:
         virtual ~IComponentRegistry() = default;
+
+        virtual CompPtrInternal* GetComponent(EntityId entity) = 0;
+        virtual bool HasComponent(EntityId entity) = 0;
+        virtual void DeleteComponent(EntityId entity) = 0;
     protected:
         //Internal utility functions
         virtual uint8_t* GetPtrIdx(size_t index) = 0;
@@ -28,30 +32,6 @@ namespace Engine
 
         void OnComponentAdded(EntityId entity, Component* component);
         void OnComponentRemoved(EntityId entity, Component* component);
-    };
-
-    template<ComponentClass C>
-    class ComponentRegistry final: IComponentRegistry
-    {
-        friend class Registry;
-    public:
-        template<typename... Args>
-        CompPtr<C> AddComponent(EntityId entity, Args... args);
-
-        CompPtr<C> GetComponent(EntityId entity);
-        bool HasComponent(EntityId entity);
-        void DeleteComponent(EntityId entity);
-    protected:
-        ComponentRegistry();
-        uint8_t* GetPtrIdx(size_t index) override;
-        uint8_t* GetPtrEnt(EntityId entity) override;
-        bool GetPtrExistIdx(size_t index) override { return index < nextFreeIdx; }
-        bool GetPtrExistEnt(EntityId entity) override { return entIdxMap.contains(entity); }
-
-        void MoveCompLoc(size_t oldIndex, size_t newIndex) override;
-        void DelComp(EntityId entity) override;
-
-        void resize();
 
         //Buffer for storing components
         std::vector<uint8_t> componentBuffer;
@@ -64,17 +44,41 @@ namespace Engine
         void UpdateInternal(EntityId entity);
         void UpdateInternals();
 
-        bool HasInternal(EntityId entity){return compPtrInternals.contains(entity);}
-        CompPtrInternal<C>* GetInternal(EntityId entity){return &compPtrInternals.at(entity);}
+        bool HasInternal(EntityId entity);
+        CompPtrInternal* GetInternal(EntityId entity);
 
         //Smart pointer internals, used to track where components point to
-        std::unordered_map<EntityId, CompPtrInternal<C>> compPtrInternals;
+        std::unordered_map<EntityId, CompPtrInternal> compPtrInternals;
+    };
+
+    template<ComponentClass C>
+    class ComponentRegistry final: IComponentRegistry
+    {
+        friend class Registry;
+    public:
+        template<typename... Args>
+        CompPtrInternal *AddComponent(EntityId entity, Args... args);
+
+        CompPtrInternal *GetComponent(EntityId entity) override;
+        bool HasComponent(EntityId entity) override;
+        void DeleteComponent(EntityId entity) override;
+    protected:
+        ComponentRegistry();
+        uint8_t* GetPtrIdx(size_t index) override;
+        uint8_t* GetPtrEnt(EntityId entity) override;
+        bool GetPtrExistIdx(size_t index) override { return index < nextFreeIdx; }
+        bool GetPtrExistEnt(EntityId entity) override { return entIdxMap.contains(entity); }
+
+        void MoveCompLoc(size_t oldIndex, size_t newIndex) override;
+        void DelComp(EntityId entity) override;
+
+        void resize();
     };
 
 
     template<ComponentClass C>
     template<typename ... Args>
-    CompPtr<C> ComponentRegistry<C>::AddComponent(EntityId entity, Args... args)
+    CompPtrInternal* ComponentRegistry<C>::AddComponent(EntityId entity, Args... args)
     {
         if(GetPtrExistEnt(entity)){return GetComponent(entity);}
 
@@ -99,10 +103,10 @@ namespace Engine
     }
 
     template<ComponentClass C>
-    CompPtr<C> ComponentRegistry<C>::GetComponent(EntityId entity)
+    CompPtrInternal* ComponentRegistry<C>::GetComponent(EntityId entity)
     {
-        CompPtrInternal<C>* ptr = GetInternal(entity);
-        return CompPtr<C>{ptr};
+        if(!HasInternal(entity)){return nullptr;}
+        return GetInternal(entity);
     }
 
     template<ComponentClass C>
@@ -176,31 +180,5 @@ namespace Engine
         componentBuffer.resize(componentBuffer.size() * 2);
 
         UpdateInternals();
-    }
-
-    template<ComponentClass C>
-    void ComponentRegistry<C>::AddInternal(EntityId entity)
-    {
-        if(HasInternal(entity)){return;}
-
-        C* component = reinterpret_cast<C*>(GetPtrEnt(entity));
-
-        compPtrInternals.insert(std::make_pair(entity, CompPtrInternal<C>{component, entity}));
-    }
-
-    template<ComponentClass C>
-    void ComponentRegistry<C>::UpdateInternal(EntityId entity)
-    {
-        CompPtrInternal<C>* ptr = GetInternal(entity);
-        ptr->component = reinterpret_cast<C*>(GetPtrEnt(entity));
-    }
-
-    template<ComponentClass C>
-    void ComponentRegistry<C>::UpdateInternals()
-    {
-        for(auto pair:compPtrInternals)
-        {
-            UpdateInternal(pair.first);
-        }
     }
 } // Engine
